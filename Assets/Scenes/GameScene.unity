@@ -773,6 +773,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _gridManager: {fileID: 404376513}
+  _matchPatterns:
+  - {fileID: 11400000, guid: d45c037bbe127db4fbe0c905db3c5f14, type: 2}
+  - {fileID: 11400000, guid: 04278dc6283a3b248aefd441ba3df961, type: 2}
+  - {fileID: 11400000, guid: 8006a7065ded26b49984b058abd4a98b, type: 2}
+  - {fileID: 11400000, guid: b25136523a84fd84d972d1310810b151, type: 2}
+  - {fileID: 11400000, guid: 569d9d2eeec896c4895742f45b039b2f, type: 2}
+  - {fileID: 11400000, guid: a53654e6a2c85074d936c05b12d9646d, type: 2}
 --- !u!1 &1515916566
 GameObject:
   m_ObjectHideFlags: 0

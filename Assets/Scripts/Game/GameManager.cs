@@ -5,13 +5,11 @@ public class GameManager : MonoBehaviour, IInitializable
 {
     [Header("References")]
     [SerializeField] private GameplayController _gameplayController;
-    
     public GameplayController GameplayController => _gameplayController;
+    [Inject] SignalBus _signalBus;
     
-    [Inject] private GameManager _gameManager;
-
     public void Initialize()
     {
-        _gameplayController.Initialize();
+        _gameplayController.Initialize(_signalBus);
     }
 }

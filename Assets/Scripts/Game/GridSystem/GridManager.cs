@@ -1,9 +1,17 @@
 using UnityEngine;
 using UnityEngine.Pool;
+using Zenject;
 
+/// <summary>
+/// Manages the creation, layout, and interaction of the grid made up of Cells.
+/// Handles grid resizing, spacing, padding, and input for marking cells.
+/// Also manages object pooling for efficient memory usage.
+/// </summary>
 public class GridManager : MonoBehaviour
 {
     private const int INITIAL_GRID_SIZE = 5;
+
+    [Inject] private DiContainer _container;
 
     [Header("References")]
     [SerializeField] private Cell _cellPrefab;
@@ -23,7 +31,7 @@ public class GridManager : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float _rightPaddingPercent = 0.05f;
 
-    private int _gridSize = INITIAL_GRID_SIZE;
+    public int CurrentGridSize { get; private set; } = INITIAL_GRID_SIZE;
     private float _spacing;
 
     private float _topPadding;
@@ -36,6 +44,8 @@ public class GridManager : MonoBehaviour
     private Vector3 _gridOrigin;
 
     private Cell[,] _cells;
+    public Cell[,] Cells => _cells;
+
     private Camera _mainCamera;
     private IObjectPool<Cell> _cellPool;
 
@@ -53,13 +63,13 @@ public class GridManager : MonoBehaviour
     public void Initialize()
     {
         _cellPool = new ObjectPool<Cell>(CreateCell, OnGetCell, OnReleaseCell, OnDestroyCell);
-        CreateGrid(_gridSize);
+        CreateGrid(CurrentGridSize);
     }
 
     public void CreateGrid(int size)
     {
-        _gridSize = size;
-        _cells = new Cell[_gridSize, _gridSize];
+        CurrentGridSize = size;
+        _cells = new Cell[CurrentGridSize, CurrentGridSize];
 
         ClearGrid();
         CalculateCellSize();
@@ -78,14 +88,19 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Handles click input by converting screen position to world position
+    /// and toggling the marked state of the corresponding cell.
+    /// </summary>
     private void HandleClick(Vector3 worldPosition)
     {
-        float cellTotalSize = _cellSize + _spacing;
+        //Find clicked grid from position
 
+        float cellTotalSize = _cellSize + _spacing;
         int gridX = Mathf.FloorToInt((worldPosition.x - _gridOrigin.x) / cellTotalSize);
         int gridY = Mathf.FloorToInt((worldPosition.y - _gridOrigin.y) / cellTotalSize);
 
-        if (gridX >= 0 && gridX < _gridSize && gridY >= 0 && gridY < _gridSize)
+        if (gridX >= 0 && gridX < CurrentGridSize && gridY >= 0 && gridY < CurrentGridSize)
         {
             Cell clickedCell = _cells[gridX, gridY];
             clickedCell.ToggleMark();
@@ -103,9 +118,13 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Calculates the starting world position of the grid
+    /// based on camera view, paddings, and available space.
+    /// </summary>
     private void CalculateGridsStartPositions()
     {
-        var usable = CalculateAvailableWidthAndHeight();
+        var available = CalculateAvailableWidthAndHeight();
         float screenHeight = 2f * MainCamera.orthographicSize;
         float screenWidth = screenHeight * MainCamera.aspect;
 
@@ -113,42 +132,58 @@ public class GridManager : MonoBehaviour
         float screenBottom = cameraCenter.y - screenHeight * 0.5f;
         float screenLeft = cameraCenter.x - screenWidth * 0.5f;
 
-        float gridTotalSize = ((_gridSize - 1) * _spacing) + (_gridSize * _cellSize);
+        float gridTotalSize = ((CurrentGridSize - 1) * _spacing) + (CurrentGridSize * _cellSize);
 
-        float startX = screenLeft + _leftPadding + (usable.width - gridTotalSize) * 0.5f;
-        float startY = screenBottom + _bottomPadding + (usable.height - gridTotalSize) * 0.5f;
+        //Centralize grid according to camera and paddings
+        float startX = screenLeft + _leftPadding + (available.width - gridTotalSize) * 0.5f;
+        float startY = screenBottom + _bottomPadding + (available.height - gridTotalSize) * 0.5f;
+
         _gridOrigin = new Vector3(startX, startY, 0f);
     }
 
     private void CalculateCellSize()
     {
-        var usable = CalculateAvailableWidthAndHeight();
-        float roughCellSize = Mathf.Min(usable.width, usable.height) / _gridSize;
+        var available = CalculateAvailableWidthAndHeight();
+        float roughCellSize = Mathf.Min(available.width, available.height) / CurrentGridSize;
 
         _spacing = roughCellSize * _spacingPercent;
 
-        float availableWidth = usable.width - (_spacing * (_gridSize - 1));
-        float availableHeight = usable.height - (_spacing * (_gridSize - 1));
+        float availableWidth = available.width - (_spacing * (CurrentGridSize - 1));
+        float availableHeight = available.height - (_spacing * (CurrentGridSize - 1));
 
-        _cellSize = Mathf.Min(availableWidth, availableHeight) / _gridSize;
+        // Set cell size according to min sized screen axis
+        _cellSize = Mathf.Min(availableWidth, availableHeight) / CurrentGridSize;
     }
 
+    /// <summary>
+    /// Calculates the usable screen width and height
+    /// after applying padding percentages.
+    /// </summary>
+    /// <returns>Tuple of available width and height.</returns>
     private (float width, float height) CalculateAvailableWidthAndHeight()
     {
+        //Calculate total visible area
         float screenHeight = 2f * MainCamera.orthographicSize;
         float screenWidth = screenHeight * MainCamera.aspect;
 
+        //Convert padding percents to real distances 
         _topPadding = screenHeight * _topPaddingPercent;
         _bottomPadding = screenHeight * _bottomPaddingPercent;
         _leftPadding = screenWidth * _leftPaddingPercent;
         _rightPadding = screenWidth * _rightPaddingPercent;
 
+        //Calculate usable area
         float usableHeight = screenHeight - _topPadding - _bottomPadding;
         float usableWidth = screenWidth - _leftPadding - _rightPadding;
 
         return (usableWidth, usableHeight);
     }
 
+    /// <summary>
+    /// Positions a cell within the grid based on its grid coordinates,
+    /// cell size, spacing, and grid origin.
+    /// Also adjusts the SpriteRenderer size accordingly.
+    /// </summary>
     private void PositionCell(Cell cell, int x, int y)
     {
         float halfCellSize = _cellSize * 0.5f;
@@ -168,6 +203,9 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Deactivates all cells currently inside the grid by releasing them back to the object pool.
+    /// </summary>
     private void ClearGrid()
     {
         for (int i = 0; i < _cellContainer.childCount; i++)
@@ -183,9 +221,15 @@ public class GridManager : MonoBehaviour
 
     #region CellPool
 
+    /// <summary>
+    /// Creates a new Cell instance from the prefab,
+    /// injects its dependencies manually using the Di Container,
+    /// </summary>
     private Cell CreateCell()
     {
         var cell = Instantiate(_cellPrefab, _cellContainer);
+        _container.Inject(cell);
+
         cell.AssignToPool(_cellPool);
 
         return cell;
@@ -201,6 +245,10 @@ public class GridManager : MonoBehaviour
         cell.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// Called when a cell is retrieved from the pool.
+    /// Reactivates the cell's GameObject.
+    /// </summary>
     private void OnGetCell(Cell cell)
     {
         cell.gameObject.SetActive(true);
