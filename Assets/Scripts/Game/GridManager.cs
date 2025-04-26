@@ -1,4 +1,3 @@
-using Game;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -26,12 +25,19 @@ public class GridManager : MonoBehaviour
 
     private int _gridSize = INITIAL_GRID_SIZE;
     private float _spacing;
+
     private float _topPadding;
     private float _bottomPadding;
     private float _leftPadding;
     private float _rightPadding;
 
+    private float _cellSize;
+
+    private Vector3 _gridOrigin;
+
+    private Cell[,] _cells;
     private Camera _mainCamera;
+    private IObjectPool<Cell> _cellPool;
 
     private Camera MainCamera
     {
@@ -44,9 +50,6 @@ public class GridManager : MonoBehaviour
         }
     }
 
-    private float _cellSize;
-    private IObjectPool<Cell> _cellPool;
-
     public void Initialize()
     {
         _cellPool = new ObjectPool<Cell>(CreateCell, OnGetCell, OnReleaseCell, OnDestroyCell);
@@ -56,29 +59,77 @@ public class GridManager : MonoBehaviour
     public void CreateGrid(int size)
     {
         _gridSize = size;
+        _cells = new Cell[_gridSize, _gridSize];
 
         ClearGrid();
         CalculateCellSize();
+        CalculateGridsStartPositions();
 
         for (int x = 0; x < size; x++)
         {
             for (int y = 0; y < size; y++)
             {
                 var cell = _cellPool.Get();
-                cell.Initialize(x, y);
-                cell.name = $"Cell_{x}_{y}";
+                cell.Initialize(x, y, _cellSize);
                 PositionCell(cell, x, y);
+
+                _cells[x, y] = cell;
             }
         }
+    }
+
+    private void HandleClick(Vector3 worldPosition)
+    {
+        float cellTotalSize = _cellSize + _spacing;
+
+        int gridX = Mathf.FloorToInt((worldPosition.x - _gridOrigin.x) / cellTotalSize);
+        int gridY = Mathf.FloorToInt((worldPosition.y - _gridOrigin.y) / cellTotalSize);
+
+        if (gridX >= 0 && gridX < _gridSize && gridY >= 0 && gridY < _gridSize)
+        {
+            Cell clickedCell = _cells[gridX, gridY];
+            clickedCell.ToggleMark();
+        }
+    }
+
+    private void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            Vector3 worldPosition = MainCamera.ScreenToWorldPoint(Input.mousePosition);
+            worldPosition.z = 0f;
+
+            HandleClick(worldPosition);
+        }
+    }
+
+    private void CalculateGridsStartPositions()
+    {
+        var usable = CalculateAvailableWidthAndHeight();
+        float screenHeight = 2f * MainCamera.orthographicSize;
+        float screenWidth = screenHeight * MainCamera.aspect;
+
+        Vector3 cameraCenter = MainCamera.transform.position;
+        float screenBottom = cameraCenter.y - screenHeight * 0.5f;
+        float screenLeft = cameraCenter.x - screenWidth * 0.5f;
+
+        float gridTotalSize = ((_gridSize - 1) * _spacing) + (_gridSize * _cellSize);
+
+        float startX = screenLeft + _leftPadding + (usable.width - gridTotalSize) * 0.5f;
+        float startY = screenBottom + _bottomPadding + (usable.height - gridTotalSize) * 0.5f;
+        _gridOrigin = new Vector3(startX, startY, 0f);
     }
 
     private void CalculateCellSize()
     {
         var usable = CalculateAvailableWidthAndHeight();
         float roughCellSize = Mathf.Min(usable.width, usable.height) / _gridSize;
+
         _spacing = roughCellSize * _spacingPercent;
+
         float availableWidth = usable.width - (_spacing * (_gridSize - 1));
         float availableHeight = usable.height - (_spacing * (_gridSize - 1));
+
         _cellSize = Mathf.Min(availableWidth, availableHeight) / _gridSize;
     }
 
@@ -100,24 +151,11 @@ public class GridManager : MonoBehaviour
 
     private void PositionCell(Cell cell, int x, int y)
     {
-        var usable = CalculateAvailableWidthAndHeight();
-        float screenHeight = 2f * MainCamera.orthographicSize;
-        float screenWidth = screenHeight * MainCamera.aspect;
-
-        Vector3 cameraCenter = MainCamera.transform.position;
-        float screenBottom = cameraCenter.y - screenHeight * 0.5f;
-        float screenLeft = cameraCenter.x - screenWidth * 0.5f;
-
-        float gridTotalSize = ((_gridSize - 1) * _spacing) + (_gridSize * _cellSize);
-
-        float startX = screenLeft + _leftPadding + (usable.width - gridTotalSize) * 0.5f;
-        float startY = screenBottom + _bottomPadding + (usable.height - gridTotalSize) * 0.5f;
-
         float halfCellSize = _cellSize * 0.5f;
         float cellWithSpacing = _cellSize + _spacing;
 
-        float xPos = startX + x * cellWithSpacing + halfCellSize;
-        float yPos = startY + y * cellWithSpacing + halfCellSize;
+        float xPos = _gridOrigin.x + x * cellWithSpacing + halfCellSize;
+        float yPos = _gridOrigin.y + y * cellWithSpacing + halfCellSize;
 
         Vector3 position = new Vector3(xPos, yPos, 0f);
 

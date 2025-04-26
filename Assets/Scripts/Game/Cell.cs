@@ -1,11 +1,14 @@
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.Serialization;
 
 public class Cell : MonoBehaviour
 {
-    private IObjectPool<Cell> _assignedPool;
-    private Vector2 _coords;
+    [Header("References")]
+    [SerializeField] private GameObject _xMark;
+    [SerializeField] private float _xMarkScaleRatio = 0.6f;
 
+ 
     private SpriteRenderer _spriteRenderer;
     public SpriteRenderer SpriteRenderer
     {
@@ -17,10 +20,32 @@ public class Cell : MonoBehaviour
             return _spriteRenderer;
         }
     }
+    
+    private IObjectPool<Cell> _assignedPool;
+    public bool IsMarked { get; private set; }
 
-    public void Initialize(int x, int y)
+    public void Initialize(int x, int y, float size)
     {
-        _coords = new Vector2(x, y);
+        Debug.Assert(SpriteRenderer != null, "SpriteRenderer can not found!");
+        Debug.Assert(_xMark != null,"_xMark is not assigned!");
+        
+        name = $"Cell_{x}_{y}";
+        SpriteRenderer.size = new Vector2(size, size);
+        _xMark.transform.localScale = Vector3.one * size * _xMarkScaleRatio ;
+
+        ResetMarker();
+    }
+
+    public void ToggleMark()
+    {
+        IsMarked = !IsMarked;
+        _xMark.gameObject.SetActive(IsMarked);
+    }
+
+    private void ResetMarker()
+    {
+        IsMarked = false;
+        _xMark.gameObject.SetActive(false);
     }
 
     public void AssignToPool(IObjectPool<Cell> assignedPool)
