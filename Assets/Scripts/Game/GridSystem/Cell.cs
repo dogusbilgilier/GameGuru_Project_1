@@ -1,13 +1,19 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Pool;
 using Zenject;
 
 public class Cell : MonoBehaviour
 {
+    [Inject] private SignalBus _signalBus;
+    
     [Header("References")]
     [SerializeField] private GameObject _xMark;
     [SerializeField] private float _xMarkScaleRatio = 0.6f;
 
+    [Header("References - Visual Feedback")]
+    [SerializeField] private Color _colorOnMatch;
+    [SerializeField] private float _scaleOverflowAmount = 0.2f;
     public Vector2Int Coordinates { get; private set; } // The grid coordinates (X, Y) of this cell.
 
     private SpriteRenderer _spriteRenderer;
@@ -24,7 +30,6 @@ public class Cell : MonoBehaviour
 
     private IObjectPool<Cell> _assignedPool;
 
-    [Inject] private SignalBus _signalBus;
     public bool IsMarked { get; private set; }
 
     public void Initialize(int x, int y, float size)
@@ -42,6 +47,24 @@ public class Cell : MonoBehaviour
             ToggleMark(true);
     }
 
+    public Sequence ChanceColorInSeconds(float seconds)
+    {
+        float waitInColor = 0.2f;
+        Color startColor = SpriteRenderer.color;
+        
+        Sequence sequence = DOTween.Sequence();
+        sequence.Join(_spriteRenderer.DOColor(_colorOnMatch, seconds));
+        sequence.AppendInterval(waitInColor);
+        sequence.OnComplete(() => { SpriteRenderer.color = startColor; });
+        return sequence;
+    }
+
+    public Sequence PunchScaleInSeconds(float seconds)
+    {
+        Sequence sequence = DOTween.Sequence();
+        sequence.Join(_xMark.transform.DOPunchScale(Vector3.one * _scaleOverflowAmount, seconds, vibrato: 1));
+        return sequence;
+    }
 
     /// <param name="isSilent">If true, prevents firing a signal when toggling the mark.</param>
     public void ToggleMark(bool isSilent = false)

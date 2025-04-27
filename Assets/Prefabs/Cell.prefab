@@ -48,6 +48,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _xMark: {fileID: 7903221277422837600}
   _xMarkScaleRatio: 0.75
+  _colorOnMatch: {r: 0.3754005, g: 0.7169812, b: 0.53568625, a: 1}
+  _scaleOverflowAmount: 0.2
 --- !u!212 &7739472642299522297
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -90,7 +92,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: ea6a968e618aac54dae448a86d6f0d04, type: 3}
-  m_Color: {r: 1, g: 0.7153831, b: 0.504717, a: 1}
+  m_Color: {r: 0.8584906, g: 0.5399863, b: 0.28751338, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 1

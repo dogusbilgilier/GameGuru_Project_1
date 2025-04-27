@@ -18,6 +18,10 @@ public class GameInstaller : MonoInstaller
         Container.BindInterfacesAndSelfTo<UIManager>().FromInstance(_uiManager).AsSingle();
         Container.BindInterfacesAndSelfTo<GameManager>().FromInstance(_gameManager).AsSingle();
         
+        //Declare Signals
         Container.DeclareSignal<CellMarkedSignal>();
+        Container.DeclareSignal<MatchStateChangedSignal>();
+        Container.DeclareSignal<MatchGridBuiltSignal>();
+        Container.DeclareSignal<MatchScoreChangedSignal>();
     }
 }

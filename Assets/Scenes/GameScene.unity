@@ -172,7 +172,7 @@ MonoBehaviour:
   _cellContainer: {fileID: 1889451389}
   _spacingPercent: 0.1
   _topPaddingPercent: 0.05
-  _bottomPaddingPercent: 0.25
+  _bottomPaddingPercent: 0.2
   _leftPaddingPercent: 0.05
   _rightPaddingPercent: 0.05
 --- !u!1 &561152482
@@ -405,8 +405,8 @@ Camera:
   m_GameObject: {fileID: 963194225}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.11764706, g: 0.105882354, b: 0.29411766, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0

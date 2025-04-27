@@ -9,9 +9,10 @@ using Zenject;
 /// </summary>
 public class GridManager : MonoBehaviour
 {
-    private const int INITIAL_GRID_SIZE = 5;
-
+    [Inject] SignalBus _signalBus;
     [Inject] private DiContainer _container;
+
+    private const int INITIAL_GRID_SIZE = 5;
 
     [Header("References")]
     [SerializeField] private Cell _cellPrefab;
@@ -40,7 +41,7 @@ public class GridManager : MonoBehaviour
     private float _rightPadding;
 
     private float _cellSize;
-
+    private bool _canMarkAnyGrid = true;
     private Vector3 _gridOrigin;
 
     private Cell[,] _cells;
@@ -64,7 +65,9 @@ public class GridManager : MonoBehaviour
     {
         _cellPool = new ObjectPool<Cell>(CreateCell, OnGetCell, OnReleaseCell, OnDestroyCell);
         CreateGrid(CurrentGridSize);
+        _signalBus.Subscribe<MatchStateChangedSignal>(OnMatchStateChanged);
     }
+
 
     public void CreateGrid(int size)
     {
@@ -86,6 +89,19 @@ public class GridManager : MonoBehaviour
                 _cells[x, y] = cell;
             }
         }
+
+        _signalBus.Fire(new MatchGridBuiltSignal());
+    }
+
+    private void Update()
+    {
+        if (_canMarkAnyGrid && Input.GetMouseButtonDown(0))
+        {
+            Vector3 worldPosition = MainCamera.ScreenToWorldPoint(Input.mousePosition);
+            worldPosition.z = 0f;
+
+            HandleClick(worldPosition);
+        }
     }
 
     /// <summary>
@@ -104,17 +120,6 @@ public class GridManager : MonoBehaviour
         {
             Cell clickedCell = _cells[gridX, gridY];
             clickedCell.ToggleMark();
-        }
-    }
-
-    private void Update()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Vector3 worldPosition = MainCamera.ScreenToWorldPoint(Input.mousePosition);
-            worldPosition.z = 0f;
-
-            HandleClick(worldPosition);
         }
     }
 
@@ -219,6 +224,11 @@ public class GridManager : MonoBehaviour
         }
     }
 
+    private void OnMatchStateChanged(MatchStateChangedSignal args)
+    {
+        _canMarkAnyGrid = args.IsMatchesInProgress == false;
+    }
+
     #region CellPool
 
     /// <summary>
@@ -227,7 +237,7 @@ public class GridManager : MonoBehaviour
     /// </summary>
     private Cell CreateCell()
     {
-        var cell = Instantiate(_cellPrefab, _cellContainer);
+        Cell cell = Instantiate(_cellPrefab, _cellContainer);
         _container.Inject(cell);
 
         cell.AssignToPool(_cellPool);
@@ -255,4 +265,8 @@ public class GridManager : MonoBehaviour
     }
 
     #endregion
+}
+
+public struct MatchGridBuiltSignal
+{
 }

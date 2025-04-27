@@ -14,6 +14,6 @@ public class GameplayController : MonoBehaviour
     {
         _signalBus = signalBus;
         _gridManager.Initialize();
-        _matchManager = new MatchManager(_gridManager, signalBus, _matchPatterns);
+        _matchManager = new MatchManager(_gridManager, _signalBus, _matchPatterns);
     }
 }

@@ -3,12 +3,13 @@ using Zenject;
 
 public class UIManager : MonoBehaviour, IInitializable
 {
-    [SerializeField] private GameplayPanel _gameplayPanel;
-
     [Inject] private GameManager _gameManager;
+    [Inject] SignalBus _signalBus;
+    
+    [SerializeField] private GameplayPanel _gameplayPanel;
 
     public void Initialize()
     {
-        _gameplayPanel.Initialize(_gameManager);
+        _gameplayPanel.Initialize(_gameManager,_signalBus);
     }
 }

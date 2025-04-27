@@ -3,10 +3,11 @@ using Zenject;
 
 public class GameManager : MonoBehaviour, IInitializable
 {
+    [Inject] SignalBus _signalBus;
+    
     [Header("References")]
     [SerializeField] private GameplayController _gameplayController;
     public GameplayController GameplayController => _gameplayController;
-    [Inject] SignalBus _signalBus;
     
     public void Initialize()
     {

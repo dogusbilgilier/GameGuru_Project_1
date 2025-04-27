@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using Zenject;
 
@@ -11,6 +12,8 @@ public class MatchManager
     List<List<Cell>> _matchedCellList = new List<List<Cell>>();
     List<Cell> _tempMatchedCells = new List<Cell>();
 
+    private int _score;
+
     public MatchManager(GridManager gridManager, SignalBus signalBus, MatchPatternSO[] matchPatterns)
     {
         _matchPatterns = matchPatterns;
@@ -18,6 +21,7 @@ public class MatchManager
         _gridManager = gridManager;
 
         _signalBus.Subscribe<CellMarkedSignal>(OnCellMarkedStateChanged);
+        _signalBus.Subscribe<MatchGridBuiltSignal>(OnMatchGridBuilt);
     }
 
     /// <summary>
@@ -45,7 +49,44 @@ public class MatchManager
             }
         }
 
-        ClearMatchedCells();
+        VisualizeMatches();
+    }
+
+    private void VisualizeMatches()
+    {
+        _signalBus.Fire(new MatchStateChangedSignal
+        {
+            IsMatchesInProgress = true
+        });
+
+        float puchDuration = 0.15f;
+        float intervalBetweenMatches = 0.3f;
+        float colorChangeDuration = 0.15f;
+
+        Sequence sequence = DOTween.Sequence();
+        sequence.OnStart(() => { });
+
+        foreach (List<Cell> cellsInMatch in _matchedCellList)
+        {
+            float durationForColorChange = 0f;
+            foreach (Cell cell in cellsInMatch)
+            {
+                sequence.Join(cell.PunchScaleInSeconds(puchDuration));
+                sequence.Join(cell.ChanceColorInSeconds(colorChangeDuration));
+            }
+
+            sequence.AppendInterval(intervalBetweenMatches);
+            sequence.JoinCallback(() =>
+            {
+                _score++;
+                _signalBus.Fire(new MatchScoreChangedSignal
+                {
+                    Score = _score
+                });
+            });
+        }
+
+        sequence.OnComplete(() => { ClearMatchedCells(); });
     }
 
     /// <summary>
@@ -99,10 +140,34 @@ public class MatchManager
 
         _tempMatchedCells.Clear();
         _matchedCellList.Clear();
+
+        _signalBus.Fire(new MatchStateChangedSignal
+        {
+            IsMatchesInProgress = false
+        });
     }
-    
+
     private void OnCellMarkedStateChanged(CellMarkedSignal args)
     {
         CheckForMatches();
     }
+    
+    private void OnMatchGridBuilt()
+    {
+        _score = 0;
+        _signalBus.Fire(new MatchScoreChangedSignal
+        {
+            Score = _score
+        });
+    }
+}
+
+public struct MatchStateChangedSignal
+{
+    public bool IsMatchesInProgress;
+}
+
+public struct MatchScoreChangedSignal
+{
+    public int Score;
 }
